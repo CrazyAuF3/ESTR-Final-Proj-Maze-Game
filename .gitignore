@@ -1,7 +1,11 @@
-*
+/*
 
 !.gitignore
 
 !src/
 
-src/maze_game
+src/**
+
+!src/**/
+
+!src/**/.

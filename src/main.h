@@ -3,8 +3,8 @@
 
 #include "game.h"
 
+void run_game_once(void);
 void setup_ncurses(void);
-void cleanup_ncurses_game(Game *game);
-void cleanup_ncurses_menu();
+void cleanup_ncurses(Game *game);
 
 #endif

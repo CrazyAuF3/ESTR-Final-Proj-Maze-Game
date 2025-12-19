@@ -19,5 +19,10 @@ void player_move(Player *player, V2d d)
 
 void player_draw(const Player *player)
 {
-    mvaddch(D_POS(player->pos.y), D_POS(player->pos.x), PLAYER);
+    mvaddch(D_POS(player->pos.y), D_POS(player->pos.x), player->symbol);
+}
+
+void player_draw_fixed_size(const Player *player, V2d _pos)
+{
+    mvaddch(D_POS(_pos.y), D_POS(_pos.x), player->symbol);
 }

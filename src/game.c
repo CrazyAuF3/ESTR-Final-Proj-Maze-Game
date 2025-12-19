@@ -12,11 +12,15 @@ Game *game_init()
     game->maze = maze_create(15, 15);
 
     /* Load from a template maze */
+    /**/
     game->maze->grid = template_maze_arr;
     game->maze->width = 15;
     game->maze->height = 15;
-    game->maze->exit_location.x = 11;
-    game->maze->exit_location.y = 11;
+    game->maze->exit_location.x = 13;
+    game->maze->exit_location.y = 13;
+    /**/
+    
+    // maze_generate_random(game->maze, 0.5);
 
     V2d start_pos = {.x = 1, .y = 1};
 
@@ -40,7 +44,7 @@ void game_handle_input(Game *game, int ch)
         }
     }
 
-    if (ch == 'q' || ch == 'Q') {
+    if (ch == 'q' || ch == 'Q' || ch == ESC_KEY) {
         game->state = GAME_QUIT;
         return;
     }
@@ -60,17 +64,43 @@ void game_draw(Game *game)
     clear();
 
     maze_draw(game->maze);
+    // maze_draw_fixed_size(game->maze, game->player->pos, DISPLAY_AREA_WIDTH, DISPLAY_AREA_HEIGHT);
 
     player_draw(game->player);
+    // V2d _display_pos = {.x = 0, .y = 0};
+    // player_draw_fixed_size(game->player, _display_pos);
 
-    switch (game->state) {
-        case GAME_WON:
-        mvprintw(18, 2, "You won!");
-        break;
-        default: mvprintw(18, 2, "Running...");
-    }
+    game_display_status(game);
 
     refresh();
+}
+
+void game_draw_fixed_size(Game *game)
+{
+    clear();
+
+    V2d _display_pos = {.x = DISPLAY_AREA_WIDTH / 2, .y = DISPLAY_AREA_HEIGHT / 2};
+    V2d _from = V2d_sub(game->player->pos, _display_pos);
+
+    maze_draw_fixed_size(game->maze, _from, DISPLAY_AREA_WIDTH, DISPLAY_AREA_HEIGHT);
+
+    player_draw_fixed_size(game->player, _display_pos);
+
+    game_display_status(game);
+
+    refresh();
+}
+
+void game_display_status(Game *game)
+{
+    switch (game->state) {
+        case GAME_WON:
+        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Congratulations! You won! Press ESC to return...");
+        break;
+
+        default: 
+        // mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Running...");
+    }
 }
 
 void game_cleanup(Game *game)

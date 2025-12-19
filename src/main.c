@@ -8,25 +8,35 @@ int main(void)
 {
     setup_ncurses();
 
-    MenuAction action;
-    if ((action = ui_show_main_menu()) == MENU_ACTION_START_GAME) {
-        Game *game = game_init();
-    
-        int ch;
-        while (game->state != GAME_QUIT) {
-            game_draw(game);
+    while (1) {
+        MenuAction action = ui_show_main_menu();
 
-            ch = getch();
-
-            game_handle_input(game, ch);
+        if (action == MENU_ACTION_START_GAME) {
+            run_game_once();
+        } else if (action == MENU_ACTION_QUIT) {
+            break;
         }
-
-        cleanup_ncurses_game(game);
     }
 
-    cleanup_ncurses_menu();
+    cleanup_ncurses(NULL);
 
     return 0;
+}
+
+void run_game_once(void)
+{
+    Game *game = game_init();
+    
+    int ch;
+    while (game->state != GAME_QUIT) {
+        game_draw_fixed_size(game);
+
+        ch = getch();
+
+        game_handle_input(game, ch);
+    }
+
+    cleanup_ncurses(game);
 }
 
 void setup_ncurses(void)
@@ -36,6 +46,7 @@ void setup_ncurses(void)
         printf("Window initialization failed\n");
         exit(1);
     }
+    set_escdelay(200);
     cbreak();
     noecho();
     noqiflush();
@@ -43,17 +54,13 @@ void setup_ncurses(void)
     curs_set(0);
 }
 
-void cleanup_ncurses_game(Game *game)
+void cleanup_ncurses(Game *game)
 {
     refresh();
-    curs_set(1);
-    game_cleanup(game);
-    endwin();
-}
+    
+    if (game != NULL) {
+        game_cleanup(game);
+    }
 
-void cleanup_ncurses_menu()
-{
-    refresh();
-    curs_set(1);
     endwin();
 }

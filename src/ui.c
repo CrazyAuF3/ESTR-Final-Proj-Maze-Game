@@ -2,34 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void ui_main_menu_init(Menu *menu);
+/* helper functions prototypes */
+
+/* input handling */
+
+static void ui_handle_input(Menu *menu, int ch);
+
+/* create and destroy */
+
+static Menu *ui_destroy_menu(Menu *menu);
+static Menu *ui_create_menu(MenuType type);
+
+/* menu drawing and behavior capturing */
+
+static void ui_draw_menu(Menu *menu);
+static MenuAction ui_show_menu(Menu *menu);
+
+/* item adding */
+
 static void ui_menu_add_item(Menu *menu, int i, MenuAction action, const char *text);
 
-Menu *ui_create_menu(MenuType type)
-{
-    Menu *menu = (Menu*)malloc(sizeof(Menu));
+/* initialize menu as different types */
 
-    menu->type = type;
+static void ui_init_as_main(Menu *menu);
 
-    switch (type) {
-        case MENU_TYPE_MAIN:
-        ui_main_menu_init(menu);
-        break;
+/* end of prototypes */
 
-        case MENU_TYPE_OPTION:
-        // not implemented yet
-        break;
-    }
+/* showing different types of menus */
 
-    return menu;
-}
+MenuAction ui_show_main_menu() { ui_add_menu(MAIN); }
 
-Menu *ui_destroy_menu(Menu *menu)
-{
-    /* Free the memory, not implemented yet */
-}
+MenuAction ui_show_options_menu() { ui_add_menu(OPTIONS); }
 
-void ui_handle_input(Menu *menu, int ch)
+/* helper functions */
+
+// handle keyboard input
+static void ui_handle_input(Menu *menu, int ch)
 {
     switch (ch) {
         case 'W': case 'w':
@@ -44,40 +52,47 @@ void ui_handle_input(Menu *menu, int ch)
         }
         break;
 
-        case ' ':
+        case ' ': case '\n':
         menu->state = MENU_STATE_OFF;
+        break;
+
+        case 'Q': case 'q': case ESC_KEY:
+        menu->state = MENU_STATE_QUIT;
         break;
     }
 }
 
-MenuAction ui_show_main_menu()
+// destroy a menu and free its memory
+static Menu *ui_destroy_menu(Menu *menu)
 {
-    Menu *main_menu;
-
-    main_menu = ui_create_menu(MENU_TYPE_MAIN);
-
-    MenuAction main_menu_action = ui_show_menu(main_menu);
-
-    ui_destroy_menu(main_menu);
-
-    return main_menu_action;
+    /* Free the memory, not implemented yet */
 }
 
-MenuAction ui_show_menu(Menu *menu)
+// allocate memory for a menu, and initialize it according to its type
+static Menu *ui_create_menu(MenuType type)
 {
-    int ch;
-    while (menu->state == MENU_STATE_ON) {
-        ui_draw_menu(menu);
+    Menu *menu = (Menu*)malloc(sizeof(Menu));
 
-        ch = getch();
+    menu->type = type;
 
-        ui_handle_input(menu, ch);
+    switch (type) {
+        case MENU_TYPE_MAIN:
+        ui_init_as_main(menu);
+        break;
+
+        case MENU_TYPE_OPTIONS:
+        // not implemented yet
+        break;
+
+        case MENU_TYPE_QUIT:
+        break;
     }
 
-    return menu->items[menu->selected].action;
+    return menu;
 }
 
-void ui_draw_menu(Menu *menu)
+// draw a menu on screen
+static void ui_draw_menu(Menu *menu)
 {
     clear();
 
@@ -96,9 +111,30 @@ void ui_draw_menu(Menu *menu)
     refresh();
 }
 
-static void ui_main_menu_init(Menu *menu)
+// show a menu and handle its behaviors
+static MenuAction ui_show_menu(Menu *menu)
 {
-    menu->item_count = 2;
+    int ch;
+
+    while (menu->state == MENU_STATE_ON) {
+        ui_draw_menu(menu);
+
+        ch = getch();
+
+        ui_handle_input(menu, ch);
+    }
+
+    // first we detect if the menu is quitting
+    if (menu->state == MENU_STATE_QUIT) return MENU_ACTION_QUIT;
+
+    // otherwise, menu->state must be OFF
+    return menu->items[menu->selected].action;
+}
+
+// initialize the main menu
+static void ui_init_as_main(Menu *menu)
+{
+    menu->item_count = 3;
     menu->title = "MAZE GAME";
     
     MenuItem *items = (MenuItem*)malloc(menu->item_count * sizeof(MenuItem));
@@ -107,12 +143,14 @@ static void ui_main_menu_init(Menu *menu)
 
     ui_menu_add_item(menu, 0, MENU_ACTION_START_GAME, "START GAME");
     ui_menu_add_item(menu, 1, MENU_ACTION_OPTIONS, "OPTIONS");
+    ui_menu_add_item(menu, 2, MENU_ACTION_QUIT, "QUIT");
 
     menu->selected = 0;
 
     menu->state = MENU_STATE_ON;
 }
 
+// add an item to a menu
 static void ui_menu_add_item(Menu *menu, int i, MenuAction action, const char *text)
 {
     MenuItem item;

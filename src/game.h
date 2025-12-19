@@ -4,6 +4,11 @@
 #include "maze.h"
 #include "player.h"
 
+#define ESC_KEY (27)
+#define DISPLAY_AREA_WIDTH (20)
+#define DISPLAY_AREA_HEIGHT (15)
+#define STATUS_BAR_VERTICAL_OFFSET (DISPLAY_AREA_HEIGHT + 3)
+
 typedef enum {
     GAME_QUIT,
     GAME_RUN,
@@ -18,8 +23,9 @@ typedef struct {
 
 Game *game_init();
 void game_handle_input(Game *game, int ch);
-void game_update(Game *game);  // not implemented
 void game_draw(Game *game);
+void game_draw_fixed_size(Game *game);
+void game_display_status(Game *game);
 void game_cleanup(Game *game);
 
 #endif
