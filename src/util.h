@@ -1,0 +1,15 @@
+#ifndef _UTIL_H
+#define _UTIL_H
+
+#define DISPLAY_OFFSET 2
+
+#define D_POS(X) (X + DISPLAY_OFFSET)
+
+typedef struct {
+    int x;
+    int y;
+} V2d;
+
+V2d V2d_add(V2d, V2d);
+
+#endif
