@@ -52,7 +52,7 @@ void ui_handle_input(Menu *menu, int ch)
 
 MenuAction ui_show_main_menu()
 {
-    Menu *main_menu = (Menu*)malloc(sizeof(Menu));
+    Menu *main_menu;
 
     main_menu = ui_create_menu(MENU_TYPE_MAIN);
 
