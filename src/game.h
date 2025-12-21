@@ -28,4 +28,7 @@ void game_draw_fixed_size(Game *game);
 void game_display_status(Game *game);
 void game_cleanup(Game *game);
 
+typedef void (*game_draw_which)(Game *game);
+extern game_draw_which game_drawer;
+
 #endif

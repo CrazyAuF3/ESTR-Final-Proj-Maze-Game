@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int enabled_fixed_size = 1;
+
 /* helper functions prototypes */
 
 /* input handling */
@@ -20,11 +22,13 @@ static MenuAction ui_show_menu(Menu *menu);
 
 /* item adding */
 
-static void ui_menu_add_item(Menu *menu, int i, MenuAction action, const char *text);
+static void ui_menu_add_entry(Menu *menu, int i, MenuAction action, const char *text);
+static void ui_menu_add_checkbox(Menu *menu, int i, int *link_var, const char *text);
 
 /* initialize menu as different types */
 
 static void ui_init_as_main(Menu *menu);
+static void ui_init_as_options(Menu *menu);
 
 /* end of prototypes */
 
@@ -53,7 +57,11 @@ static void ui_handle_input(Menu *menu, int ch)
         break;
 
         case ' ': case '\n':
-        menu->state = MENU_STATE_OFF;
+        if (menu->items[menu->selected].type == MENU_ITEM_TYPE_ENTRY) {
+            menu->state = MENU_STATE_OFF;
+        } else if (menu->items[menu->selected].type == MENU_ITEM_TYPE_CHECKBOX) {
+            *(menu->items[menu->selected].checkbox.linked_var) = !*(menu->items[menu->selected].checkbox.linked_var);
+        }
         break;
 
         case 'Q': case 'q': case ESC_KEY:
@@ -81,7 +89,7 @@ static Menu *ui_create_menu(MenuType type)
         break;
 
         case MENU_TYPE_OPTIONS:
-        // not implemented yet
+        ui_init_as_options(menu);
         break;
 
         case MENU_TYPE_QUIT:
@@ -96,16 +104,37 @@ static void ui_draw_menu(Menu *menu)
 {
     clear();
 
-    mvprintw(2, 2, menu->title);
+    mvprintw(2, 2, "%s", menu->title);
 
     for (int i = 0; i < menu->item_count; i++) {
-        char *entry_show = (char*)malloc(ENTRY_SHOW_BUFFER_SIZE*sizeof(char));
-        strcpy(entry_show, "-> ");
-        strcat(entry_show, menu->items[i].text);
-        mvprintw(2+2*(i+1), 2,
-            menu->selected == i ? entry_show : menu->items[i].text);
-        
-        free(entry_show);
+        if (menu->items[i].type == MENU_ITEM_TYPE_ENTRY) {
+            if (menu->selected == i) {
+                char *selected_entry = (char*)malloc(MENU_ITEM_TEXT_BUFFER_SIZE*sizeof(char));
+                strcpy(selected_entry, "-> ");
+                strcat(selected_entry, menu->items[i].base.text);
+                mvprintw(2+2*(i+1), 2, "%s", selected_entry);
+                free(selected_entry);
+            } else {
+                mvprintw(2+2*(i+1), 2, "%s", menu->items[i].base.text);
+            }
+            
+        } else if (menu->items[i].type == MENU_ITEM_TYPE_CHECKBOX) {
+            char *checkbox_with_state = (char*)malloc(MENU_ITEM_TEXT_BUFFER_SIZE*sizeof(char));
+            strcpy(checkbox_with_state, menu->items[i].base.text);
+            strcat(checkbox_with_state, ": ");
+            strcat(checkbox_with_state, *menu->items[menu->selected].checkbox.linked_var ? "ENABLED" : "DISABLED");
+            
+            if (menu->selected == i) {
+                char *selected_checkbox = (char*)malloc(MENU_ITEM_TEXT_BUFFER_SIZE*sizeof(char));
+                strcpy(selected_checkbox, "-> ");
+                strcat(selected_checkbox, checkbox_with_state);
+                mvprintw(2+2*(i+1), 2, "%s", selected_checkbox);
+                free(selected_checkbox);
+            } else {
+                mvprintw(2+2*(i+1), 2, "%s", checkbox_with_state);
+            }
+            free(checkbox_with_state);
+        }
     }
 
     refresh();
@@ -128,7 +157,7 @@ static MenuAction ui_show_menu(Menu *menu)
     if (menu->state == MENU_STATE_QUIT) return MENU_ACTION_QUIT;
 
     // otherwise, menu->state must be OFF
-    return menu->items[menu->selected].action;
+    return menu->items[menu->selected].base.action;
 }
 
 // initialize the main menu
@@ -138,12 +167,27 @@ static void ui_init_as_main(Menu *menu)
     menu->title = "MAZE GAME";
     
     MenuItem *items = (MenuItem*)malloc(menu->item_count * sizeof(MenuItem));
-
     menu->items = items;
 
-    ui_menu_add_item(menu, 0, MENU_ACTION_START_GAME, "START GAME");
-    ui_menu_add_item(menu, 1, MENU_ACTION_OPTIONS, "OPTIONS");
-    ui_menu_add_item(menu, 2, MENU_ACTION_QUIT, "QUIT");
+    ui_menu_add_entry(menu, 0, MENU_ACTION_START_GAME, "START GAME");
+    ui_menu_add_entry(menu, 1, MENU_ACTION_OPTIONS, "OPTIONS");
+    ui_menu_add_entry(menu, 2, MENU_ACTION_QUIT, "QUIT");
+
+    menu->selected = 0;
+
+    menu->state = MENU_STATE_ON;
+}
+
+// initialize the options menu
+static void ui_init_as_options(Menu *menu)
+{
+    menu->item_count = 1;
+    menu->title = "OPTIONS";
+
+    MenuItem *items = (MenuItem*)malloc(menu->item_count * sizeof(MenuItem));
+    menu->items = items;
+
+    ui_menu_add_checkbox(menu, 0, &enabled_fixed_size, "FIXED SIZE");
 
     menu->selected = 0;
 
@@ -151,10 +195,21 @@ static void ui_init_as_main(Menu *menu)
 }
 
 // add an item to a menu
-static void ui_menu_add_item(Menu *menu, int i, MenuAction action, const char *text)
+static void ui_menu_add_entry(Menu *menu, int i, MenuAction action, const char *text)
 {
     MenuItem item;
-    item.action = action;
-    item.text = text;
+    item.type = MENU_ITEM_TYPE_ENTRY;
+    item.base.action = action;
+    item.base.text = text;
     menu->items[i] = item;
+}
+
+static void ui_menu_add_checkbox(Menu *menu, int i, int *link_var, const char *text)
+{
+    MenuItem checkbox;
+    checkbox.type = MENU_ITEM_TYPE_CHECKBOX;
+    checkbox.base.text = text;
+    checkbox.base.action = MENU_ACTION_TOGGLE;
+    checkbox.checkbox.linked_var = link_var;
+    menu->items[i] = checkbox;
 }
