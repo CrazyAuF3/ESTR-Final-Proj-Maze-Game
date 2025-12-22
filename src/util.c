@@ -19,3 +19,14 @@ V2d V2d_sub(V2d v1, V2d v2)
 
     return diff;
 }
+
+int V2d_manhattan_distance(V2d v1, V2d v2)
+{
+    V2d diff = V2d_sub(v1, v2);
+    return abs(diff.x) + abs(diff.y);
+}
+
+int abs(int num)
+{
+    return num > 0 ? num : -num;
+}

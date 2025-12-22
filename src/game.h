@@ -25,6 +25,7 @@ Game *game_init();
 void game_handle_input(Game *game, int ch);
 void game_draw(Game *game);
 void game_draw_fixed_size(Game *game);
+void game_draw_distance(Game *game);
 void game_display_status(Game *game);
 void game_cleanup(Game *game);
 

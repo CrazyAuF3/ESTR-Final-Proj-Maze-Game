@@ -15,6 +15,7 @@
         } while (0)
 
 extern int enabled_fixed_size;
+extern int enabled_limited_sight;
 
 typedef enum {
     MENU_STATE_OFF,  // closing a menu, but going to another menu or a game

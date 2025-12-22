@@ -9,15 +9,15 @@
 Game *game_init()
 {
     Game *game = (Game*)malloc(sizeof(Game));
-    game->maze = maze_create(15, 15);
+    game->maze = maze_create(30, 30);
 
     /* Load from a template maze */
     /**/
-    game->maze->grid = template_maze_arr;
-    game->maze->width = 15;
-    game->maze->height = 15;
-    game->maze->exit_location.x = 13;
-    game->maze->exit_location.y = 13;
+    game->maze->grid = template_maze_arr_2;
+    game->maze->width = 30;
+    game->maze->height = 22;
+    game->maze->exit_location.x = 28;
+    game->maze->exit_location.y = 20;
     /**/
     
     // maze_generate_random(game->maze, 0.5);
@@ -64,12 +64,7 @@ void game_draw(Game *game)
     clear();
 
     maze_draw(game->maze);
-    // maze_draw_fixed_size(game->maze, game->player->pos, DISPLAY_AREA_WIDTH, DISPLAY_AREA_HEIGHT);
-
     player_draw(game->player);
-    // V2d _display_pos = {.x = 0, .y = 0};
-    // player_draw_fixed_size(game->player, _display_pos);
-
     game_display_status(game);
 
     refresh();
@@ -81,11 +76,19 @@ void game_draw_fixed_size(Game *game)
 
     V2d _display_pos = {.x = DISPLAY_AREA_WIDTH / 2, .y = DISPLAY_AREA_HEIGHT / 2};
     V2d _from = V2d_sub(game->player->pos, _display_pos);
-
     maze_draw_fixed_size(game->maze, _from, DISPLAY_AREA_WIDTH, DISPLAY_AREA_HEIGHT);
-
     player_draw_fixed_size(game->player, _display_pos);
+    game_display_status(game);
 
+    refresh();
+}
+
+void game_draw_distance(Game *game)
+{
+    clear();
+
+    maze_draw_distance(game->maze, game->player->pos, 10);
+    player_draw(game->player);
     game_display_status(game);
 
     refresh();

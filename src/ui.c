@@ -3,6 +3,7 @@
 #include <string.h>
 
 int enabled_fixed_size = 1;
+int enabled_limited_sight = 0;
 
 /* helper functions prototypes */
 
@@ -60,7 +61,7 @@ static void ui_handle_input(Menu *menu, int ch)
         if (menu->items[menu->selected].type == MENU_ITEM_TYPE_ENTRY) {
             menu->state = MENU_STATE_OFF;
         } else if (menu->items[menu->selected].type == MENU_ITEM_TYPE_CHECKBOX) {
-            *(menu->items[menu->selected].checkbox.linked_var) = !*(menu->items[menu->selected].checkbox.linked_var);
+            *(menu->items[menu->selected].checkbox.linked_var) = !(*(menu->items[menu->selected].checkbox.linked_var));
         }
         break;
 
@@ -122,7 +123,7 @@ static void ui_draw_menu(Menu *menu)
             char *checkbox_with_state = (char*)malloc(MENU_ITEM_TEXT_BUFFER_SIZE*sizeof(char));
             strcpy(checkbox_with_state, menu->items[i].base.text);
             strcat(checkbox_with_state, ": ");
-            strcat(checkbox_with_state, *menu->items[menu->selected].checkbox.linked_var ? "ENABLED" : "DISABLED");
+            strcat(checkbox_with_state, *menu->items[i].checkbox.linked_var ? "ENABLED" : "DISABLED");
             
             if (menu->selected == i) {
                 char *selected_checkbox = (char*)malloc(MENU_ITEM_TEXT_BUFFER_SIZE*sizeof(char));
@@ -181,13 +182,14 @@ static void ui_init_as_main(Menu *menu)
 // initialize the options menu
 static void ui_init_as_options(Menu *menu)
 {
-    menu->item_count = 1;
+    menu->item_count = 2;
     menu->title = "OPTIONS";
 
     MenuItem *items = (MenuItem*)malloc(menu->item_count * sizeof(MenuItem));
     menu->items = items;
 
     ui_menu_add_checkbox(menu, 0, &enabled_fixed_size, "FIXED SIZE");
+    ui_menu_add_checkbox(menu, 1, &enabled_limited_sight, "LIMITED SIGHT");
 
     menu->selected = 0;
 

@@ -5,7 +5,7 @@
 #include <ncurses.h>
 #include "util.h"
 
-char *template_maze_arr[15] = {
+char *template_maze_arr_1[15] = {
     "###############",
     "#             #",
     "# ########### #",
@@ -21,6 +21,31 @@ char *template_maze_arr[15] = {
     "#  # #    #####",
     "#      #     x#",
     "###############",
+};
+
+char *template_maze_arr_2[30] = {
+    "##############################",
+    "#                            #",
+    "#   ###############          #",
+    "#       #                    #",
+    "#       #                    #",
+    "#       #                    #",
+    "#       #                    #",
+    "#       #                    #",
+    "#       #                    #",
+    "#       ##############       #",
+    "#            #               #",
+    "#            #               #",
+    "#            #################",
+    "#                            #",
+    "#                            #",
+    "#                            #",
+    "#                            #",
+    "#                            #",
+    "#                            #",
+    "#                            #",
+    "#                           x#",
+    "##############################",
 };
 
 Maze *maze_create(int width, int height)
@@ -69,13 +94,45 @@ void maze_draw(const Maze *maze)
                 mvaddch(D_POS(y), D_POS(x), WALL);
                 break;
 
+                case EXIT:
+                mvaddch(D_POS(y), D_POS(x), EXIT);
+                break;
+
                 default:
                 mvaddch(D_POS(y), D_POS(x), PATH);
             }
         }
     }
+}
 
-    mvaddch(D_POS(maze->exit_location.x), D_POS(maze->exit_location.y), EXIT);
+void maze_draw_distance(const Maze *maze, V2d player_pos, int d)
+{
+    for (int y = 0; y < maze->height; y++) {
+        for (int x = 0; x < maze->width; x++) {
+            if (USE_MANHATTAN) {
+                V2d curr = {.x = x, .y = y};
+                if (V2d_manhattan_distance(curr, player_pos) > d) {
+                    continue;
+                }
+            } else {
+                if (x > player_pos.x + 5 || x < player_pos.x - 5 || y > player_pos.y + 5 || y < player_pos.y - 5) {
+                    continue;
+                }
+            }
+            switch (maze->grid[y][x]) {
+                case WALL:
+                mvaddch(D_POS(y), D_POS(x), WALL);
+                break;
+
+                case EXIT:
+                mvaddch(D_POS(y), D_POS(x), EXIT);
+                break;
+
+                default:
+                mvaddch(D_POS(y), D_POS(x), PATH);
+            }
+        }
+    }
 }
 
 void maze_draw_fixed_size(const Maze *maze, V2d _from, const int _width, const int _height)

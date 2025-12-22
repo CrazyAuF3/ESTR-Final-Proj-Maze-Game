@@ -29,8 +29,17 @@ void run_game_once(void)
 {
     Game *game = game_init();
 
-    game_draw_which game_drawer = enabled_fixed_size ? game_draw_fixed_size : game_draw;
-    
+    game_draw_which game_drawer;
+    if (enabled_fixed_size) {
+        game_drawer = game_draw_fixed_size;
+    } else {
+        if (enabled_limited_sight) {
+            game_drawer = game_draw_distance;
+        } else {
+            game_drawer = game_draw;
+        }
+    }
+
     int ch;
     while (game->state != GAME_QUIT) {
         game_drawer(game);
