@@ -1,7 +1,6 @@
 #include "maze.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <ncurses.h>
 #include "util.h"
 
@@ -48,6 +47,9 @@ char *template_maze_arr_2[30] = {
     "##############################",
 };
 
+static void maze_draw_cell(int s, int y, int x);
+static void maze_draw_teleporter(Maze *maze);
+
 Maze *maze_create(int width, int height)
 {
     Maze *maze = (Maze*)malloc(sizeof(Maze));
@@ -59,48 +61,32 @@ Maze *maze_create(int width, int height)
         maze->grid[i] = (char*)malloc(width * sizeof(char));
     }
 
+    maze->teleporter_count = 0;
+    maze->teleporter_location = NULL;
+
     return maze;
+}
+
+void maze_destroy(Maze *maze) {
+    if (maze->teleporter_location) free(maze->teleporter_location);
+
+    for (int i = 0; i < maze->height; i++) {
+        free(maze->grid[i]);
+    }
+    free(maze->grid);
+    
+    free(maze);
 }
 
 // TODO: implement maze_load_from_file
 
-void maze_generate_random(Maze *maze, double density)
-{
-    srand(time(NULL));
-    
-    for (int i = 0; i < maze->height; i++) {
-        for (int j = 0; j < maze->width; j++) {
-            if (i == 0 || i == maze->height-1 || j == 0 || j == maze->width-1) {
-                maze->grid[i][j] = WALL;
-            } else {
-                maze->grid[i][j] = ((double)rand() / RAND_MAX) < density ? WALL : PATH;
-            }
-        }
-    }
-    
-    // ensure start (1,1) and exit are clear
-    maze->grid[1][1] = PATH;
-    maze->exit_location.x = maze->width - 2;
-    maze->exit_location.y = maze->height - 2;
-    maze->grid[maze->exit_location.y][maze->exit_location.x] = EXIT;
-}
+// TODO: implement maze_generate_random
 
 void maze_draw(const Maze *maze)
 {
     for (int y = 0; y < maze->height; y++) {
         for (int x = 0; x < maze->width; x++) {
-            switch (maze->grid[y][x]) {
-                case WALL:
-                mvaddch(D_POS(y), D_POS(x), WALL);
-                break;
-
-                case EXIT:
-                mvaddch(D_POS(y), D_POS(x), EXIT);
-                break;
-
-                default:
-                mvaddch(D_POS(y), D_POS(x), PATH);
-            }
+            maze_draw_cell(maze->grid[y][x], y, x);
         }
     }
 }
@@ -119,18 +105,7 @@ void maze_draw_distance(const Maze *maze, V2d player_pos, int d)
                     continue;
                 }
             }
-            switch (maze->grid[y][x]) {
-                case WALL:
-                mvaddch(D_POS(y), D_POS(x), WALL);
-                break;
-
-                case EXIT:
-                mvaddch(D_POS(y), D_POS(x), EXIT);
-                break;
-
-                default:
-                mvaddch(D_POS(y), D_POS(x), PATH);
-            }
+            maze_draw_cell(maze->grid[y][x], y, x);
         }
     }
 }
@@ -149,22 +124,7 @@ void maze_draw_fixed_size(const Maze *maze, V2d _from, const int _width, const i
                 display_char = maze->grid[y+_from.y][x+_from.x];
             }
 
-            switch (display_char) {
-                case WALL:
-                mvaddch(D_POS(y), D_POS(x), WALL);
-                break;
-
-                case VOID_CHAR:
-                mvaddch(D_POS(y), D_POS(x), VOID_CHAR);
-                break;
-
-                case EXIT:
-                mvaddch(D_POS(y), D_POS(x), EXIT);
-                break;
-
-                default:
-                mvaddch(D_POS(y), D_POS(x), PATH);
-            }
+            maze_draw_cell(display_char, y, x);
         }
     }
 }
@@ -188,14 +148,86 @@ int maze_is_exit(Maze *maze, V2d pos)
     );
 }
 
-void maze_destroy(Maze *maze) {
-    /*
-    for (int i = 0; i < maze->height; i++) {
-        free(maze->grid[i]);
+int maze_is_teleporter(Maze *maze, V2d pos)
+{
+    for (int i = 0; i < maze->teleporter_count; i++) {
+        V2d t_pos = maze->teleporter_location[i];
+        V2d diff = V2d_sub(t_pos, pos);
+        if (diff.x == 0 && diff.y == 0) {
+            return 1;
+        }
     }
-    
-    free(maze->grid);
-    
-    free(maze);
-    */
+    return 0;
+}
+
+V2d maze_get_random_teleporter_pos(Maze *maze)
+{
+    return (maze->teleporter_location[rand() % maze->teleporter_count]);
+}
+
+void maze_place_teleporters(Maze *maze, const int count, double density)
+{
+    if (maze == NULL || count <= 0 || density <= 0.0) {
+        return;
+    }
+
+    if (maze->teleporter_location) {
+        free(maze->teleporter_location);
+    }
+
+    maze->teleporter_location = (V2d*)malloc(count * sizeof(V2d));
+    maze->teleporter_count = 0;
+
+    while (maze->teleporter_count < count) {
+        for (int y = 0; y < maze->height; y++) {
+            for (int x = 0; x < maze->width; x++) {
+                if (maze->teleporter_count >= count) {
+                        return;
+                }
+
+                if (maze->grid[y][x] == PATH) {
+                    if ((double)rand() / RAND_MAX > density) {
+                        continue;
+                    }
+
+                    V2d new_pos = {.x = x, .y = y};
+                    maze->grid[y][x] = TELEPORT;
+                    maze->teleporter_location[maze->teleporter_count] = new_pos;
+                    maze->teleporter_count++;
+                }
+            }
+        }
+    }
+}
+
+static void maze_draw_cell(int s, int y, int x)
+{
+    switch (s) {
+        case WALL:
+        mvaddch(D_POS(y), D_POS(x), WALL);
+        break;
+
+        case VOID_CHAR:
+        mvaddch(D_POS(y), D_POS(x), VOID_CHAR);
+        break;
+
+        case TELEPORT:
+        mvaddch(D_POS(y), D_POS(x), TELEPORT);
+        break;
+
+        case EXIT:
+        mvaddch(D_POS(y), D_POS(x), EXIT);
+        break;
+
+        default:
+        mvaddch(D_POS(y), D_POS(x), PATH);
+    }
+}
+
+static void maze_draw_teleporter(Maze *maze)
+{
+    for (int i = 0; i < maze->teleporter_count; i++) {
+        V2d t_pos = maze->teleporter_location[i];
+        mvaddch(D_POS(t_pos.y), D_POS(t_pos.x), TELEPORT);
+    }
 }

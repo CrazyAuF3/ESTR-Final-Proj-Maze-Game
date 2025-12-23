@@ -1,6 +1,7 @@
 #include "main.h"
 #include <ncurses.h>
 #include <stdlib.h>
+#include <time.h>
 #include "game.h"
 #include "ui.h"
 
@@ -54,6 +55,7 @@ void run_game_once(void)
 
 void setup_ncurses(void)
 {
+    srand(time(NULL));
     WINDOW *win;
     if ((win = initscr()) == NULL) {
         printf("Window initialization failed\n");

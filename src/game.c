@@ -1,26 +1,34 @@
 #include "game.h"
 #include <ncurses.h>
 #include <stdlib.h>
-// #include <string.h>
+#include <string.h>
 #include "maze.h"
 #include "player.h"
 #include "util.h"
 
 Game *game_init()
 {
-    Game *game = (Game*)malloc(sizeof(Game));
-    game->maze = maze_create(30, 30);
-
     /* Load from a template maze */
-    /**/
-    game->maze->grid = template_maze_arr_2;
-    game->maze->width = 30;
-    game->maze->height = 22;
-    game->maze->exit_location.x = 28;
-    game->maze->exit_location.y = 20;
-    /**/
-    
-    // maze_generate_random(game->maze, 0.5);
+
+    int width = 30;
+    int height = 22;
+
+    Game *game = (Game*)malloc(sizeof(Game));
+    game->maze = maze_create(width, height);
+
+    /* load from the string literal array */
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            game->maze->grid[y][x] = template_maze_arr_2[y][x];
+        }
+    }
+
+    game->maze->width = width;
+    game->maze->height = height;
+    game->maze->exit_location.x = width - 2;
+    game->maze->exit_location.y = height - 2;
+
+    maze_place_teleporters(game->maze, 5, 0.02);
 
     V2d start_pos = {.x = 1, .y = 1};
 
@@ -55,6 +63,10 @@ void game_handle_input(Game *game, int ch)
         player_move(game->player, diff);
         if (maze_is_exit(game->maze, new_pos)) {
             game->state = GAME_WON;
+        } else if (maze_is_teleporter(game->maze, new_pos)) {
+            diff = V2d_sub(maze_get_random_teleporter_pos(game->maze), new_pos);
+            new_pos = V2d_add(new_pos, diff);
+            player_move(game->player, diff);
         }
     }
 }
