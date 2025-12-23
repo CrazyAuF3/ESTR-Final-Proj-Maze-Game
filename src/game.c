@@ -5,6 +5,7 @@
 #include "maze.h"
 #include "player.h"
 #include "util.h"
+#include "ui.h"
 
 Game *game_init()
 {
@@ -32,7 +33,7 @@ Game *game_init()
 
     V2d start_pos = {.x = 1, .y = 1};
 
-    game->player = player_create(start_pos, 100);
+    game->player = player_create(start_pos, 200);
     game->state = GAME_RUN;
 
     return game;
@@ -114,19 +115,27 @@ void game_display_status(Game *game)
     memset(status_clear, ' ', STATUS_BAR_BUFFER - 1);
     status_clear[STATUS_BAR_BUFFER - 1] = '\0';
 
-    mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, status_clear);
+    int vertical_offset;
+
+    if (enabled_fixed_size == 1) {
+        vertical_offset = STATUS_BAR_VERTICAL_OFFSET;
+    } else {
+        vertical_offset = STATUS_BAR_VERTICAL_OFFSET_NF(game->maze->height);
+    }
+
+    mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, status_clear);
 
     switch (game->state) {
         case GAME_RUN:
-        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Current energy: %d", game->player->energy);
+        mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, "Current energy: %d", game->player->energy);
         break;
 
         case GAME_WON:
-        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Congratulations! You won! Press ESC to return...");
+        mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, "Congratulations! You won! Press ESC to return...");
         break;
 
         case GAME_LOSE:
-        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Oh no! You consumed all energy and lost! Press ESC to return...");
+        mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, "Oh no! You consumed all energy and lost! Press ESC to return...");
     }
 }
 

@@ -48,6 +48,10 @@ void run_game_once(void)
         ch = getch();
 
         game_handle_input(game, ch);
+
+        if (ENABLE_NAP) {
+            napms(30);
+        }
     }
 
     cleanup_ncurses(game);
@@ -56,6 +60,7 @@ void run_game_once(void)
 void setup_ncurses(void)
 {
     srand(time(NULL));
+    try_resize_terminal(28, 34 * 2);  // maybe not effective on some terminals
     WINDOW *win;
     if ((win = initscr()) == NULL) {
         printf("Window initialization failed\n");
@@ -78,4 +83,11 @@ void cleanup_ncurses(Game *game)
     }
 
     endwin();
+}
+
+void try_resize_terminal(int r, int c)
+{
+    char command[100];
+    snprintf(command, sizeof(command), "resize -s %d %d", r, c);
+    system(command);
 }
