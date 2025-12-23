@@ -8,11 +8,13 @@
 #define DISPLAY_AREA_WIDTH (20)
 #define DISPLAY_AREA_HEIGHT (15)
 #define STATUS_BAR_VERTICAL_OFFSET (DISPLAY_AREA_HEIGHT + 3)
+#define STATUS_BAR_BUFFER (30)
 
 typedef enum {
     GAME_QUIT,
     GAME_RUN,
     GAME_WON,
+    GAME_LOSE,
 } GameState;
 
 typedef struct {

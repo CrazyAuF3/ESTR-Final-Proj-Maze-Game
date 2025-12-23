@@ -32,7 +32,7 @@ Game *game_init()
 
     V2d start_pos = {.x = 1, .y = 1};
 
-    game->player = player_create(start_pos);
+    game->player = player_create(start_pos, 100);
     game->state = GAME_RUN;
 
     return game;
@@ -50,24 +50,26 @@ void game_handle_input(Game *game, int ch)
             case 'A': case 'a': diff.x = -1; break;
             case 'D': case 'd': diff.x = 1; break;
         }
+
+        V2d new_pos = V2d_add(game->player->pos, diff);
+
+        if (maze_is_valid_move(game->maze, new_pos)) {
+            player_move(game->player, diff, 1);
+            if (!player_has_energy(game->player)) {
+                game->state = GAME_LOSE;
+            } else if (maze_is_exit(game->maze, new_pos)) {
+                game->state = GAME_WON;
+            } else if (maze_is_teleporter(game->maze, new_pos)) {
+                diff = V2d_sub(maze_get_random_teleporter_pos(game->maze), new_pos);
+                new_pos = V2d_add(new_pos, diff);
+                player_move(game->player, diff, 1);
+            }
+        }
     }
 
     if (ch == 'q' || ch == 'Q' || ch == ESC_KEY) {
         game->state = GAME_QUIT;
         return;
-    }
-
-    V2d new_pos = V2d_add(game->player->pos, diff);
-
-    if (maze_is_valid_move(game->maze, new_pos)) {
-        player_move(game->player, diff);
-        if (maze_is_exit(game->maze, new_pos)) {
-            game->state = GAME_WON;
-        } else if (maze_is_teleporter(game->maze, new_pos)) {
-            diff = V2d_sub(maze_get_random_teleporter_pos(game->maze), new_pos);
-            new_pos = V2d_add(new_pos, diff);
-            player_move(game->player, diff);
-        }
     }
 }
 
@@ -108,13 +110,23 @@ void game_draw_distance(Game *game)
 
 void game_display_status(Game *game)
 {
+    char status_clear[STATUS_BAR_BUFFER];
+    memset(status_clear, ' ', STATUS_BAR_BUFFER - 1);
+    status_clear[STATUS_BAR_BUFFER - 1] = '\0';
+
+    mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, status_clear);
+
     switch (game->state) {
+        case GAME_RUN:
+        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Current energy: %d", game->player->energy);
+        break;
+
         case GAME_WON:
         mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Congratulations! You won! Press ESC to return...");
         break;
 
-        default: 
-        // mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Running...");
+        case GAME_LOSE:
+        mvprintw(STATUS_BAR_VERTICAL_OFFSET, HORIZONTAL_DISPLAY_OFFSET, "Oh no! You consumed all energy and lost! Press ESC to return...");
     }
 }
 
