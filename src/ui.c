@@ -4,6 +4,8 @@
 
 int enabled_fixed_size = 1;
 int enabled_limited_sight = 0;
+int enabled_energy = 1;
+int enabled_teleporters = 0;
 
 /* helper functions prototypes */
 
@@ -182,7 +184,7 @@ static void ui_init_as_main(Menu *menu)
 // initialize the options menu
 static void ui_init_as_options(Menu *menu)
 {
-    menu->item_count = 2;
+    menu->item_count = 4;
     menu->title = "OPTIONS";
 
     MenuItem *items = (MenuItem*)malloc(menu->item_count * sizeof(MenuItem));
@@ -190,6 +192,8 @@ static void ui_init_as_options(Menu *menu)
 
     ui_menu_add_checkbox(menu, 0, &enabled_fixed_size, "FIXED SIZE");
     ui_menu_add_checkbox(menu, 1, &enabled_limited_sight, "LIMITED SIGHT");
+    ui_menu_add_checkbox(menu, 2, &enabled_teleporters, "TELEPORTERS");
+    ui_menu_add_checkbox(menu, 3, &enabled_energy, "LIMITED ENERGY");
 
     menu->selected = 0;
 

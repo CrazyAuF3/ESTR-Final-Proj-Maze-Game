@@ -16,6 +16,8 @@
 
 extern int enabled_fixed_size;
 extern int enabled_limited_sight;
+extern int enabled_energy;
+extern int enabled_teleporters;
 
 typedef enum {
     MENU_STATE_OFF,  // closing a menu, but going to another menu or a game

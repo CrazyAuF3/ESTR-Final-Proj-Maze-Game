@@ -24,15 +24,12 @@ Game *game_init()
         }
     }
 
-    game->maze->width = width;
-    game->maze->height = height;
-    game->maze->exit_location.x = width - 2;
-    game->maze->exit_location.y = height - 2;
+    game->maze->exit_location = (V2d){.x = width - 2, .y = height - 2};
 
-    game->maze->component_count = 1;
-    game->maze->components = (MazeComponent*)malloc(game->maze->component_count * sizeof(MazeComponent));
-
-    maze_place_teleporters(game->maze, 5, 0.02);
+    if (enabled_teleporters) {
+        maze_add_component(game->maze, MAZE_COMPONENT_TYPE_TELEPORTER, 5);
+        maze_place_teleporters(game->maze, 5, 0.02);
+    }
 
     V2d start_pos = V2D_UNIT_VECTOR();
 
@@ -58,7 +55,12 @@ void game_handle_input(Game *game, int ch)
         V2d new_pos = V2d_add(game->player->pos, diff);
 
         if (maze_is_valid_move(game->maze, new_pos)) {
-            player_move(game->player, diff, 1);
+            if (enabled_energy) {
+                player_move(game->player, diff, 1);
+            } else {
+                player_move(game->player, diff, 0);
+            }
+
             if (!player_has_energy(game->player)) {
                 game->state = GAME_LOSE;
             } else if (maze_is_exit(game->maze, new_pos)) {
@@ -130,7 +132,9 @@ void game_display_status(Game *game)
 
     switch (game->state) {
         case GAME_RUN:
-        mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, "Current energy: %d", game->player->energy);
+        if (enabled_energy) {
+            mvprintw(vertical_offset, HORIZONTAL_DISPLAY_OFFSET, "Current energy: %d", game->player->energy);
+        }
         break;
 
         case GAME_WON:

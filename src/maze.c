@@ -62,6 +62,8 @@ Maze *maze_create(int width, int height)
         maze->grid[i] = (char*)malloc(width * sizeof(char));
     }
 
+    maze->exit_location = V2D_NEGATIVE_UNIT_VECTOR();
+
     maze->component_count = 0;
     maze->components = NULL;
 
@@ -109,6 +111,7 @@ void maze_draw_distance(const Maze *maze, V2d player_pos, int d)
                     continue;
                 }
             }
+
             maze_draw_cell(maze->grid[y][x], y, x);
         }
     }
@@ -201,14 +204,8 @@ void maze_place_teleporters(Maze *maze, const int count, double density)
         return;
     }
 
-    int teleporter_index;
-    teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
-    if (teleporter_index != -1) {
-        return;
-    } else {
-        maze_add_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER, count);
-        teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
-    }
+    int teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
+    assert(teleporter_index != -1);
 
     int teleporter_count = 0;
     while (teleporter_count < count) {
