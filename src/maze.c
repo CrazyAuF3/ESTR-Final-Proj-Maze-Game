@@ -1,6 +1,7 @@
 #include "maze.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <ncurses.h>
 #include "util.h"
 
@@ -61,14 +62,17 @@ Maze *maze_create(int width, int height)
         maze->grid[i] = (char*)malloc(width * sizeof(char));
     }
 
-    maze->teleporter_count = 0;
-    maze->teleporter_location = NULL;
+    maze->component_count = 0;
+    maze->components = NULL;
 
     return maze;
 }
 
 void maze_destroy(Maze *maze) {
-    if (maze->teleporter_location) free(maze->teleporter_location);
+    for (int i = 0; i < maze->component_count; i++) {
+        free(maze->components[i].location);
+    }
+    free(maze->components);
 
     for (int i = 0; i < maze->height; i++) {
         free(maze->grid[i]);
@@ -148,21 +152,47 @@ int maze_is_exit(Maze *maze, V2d pos)
     );
 }
 
-int maze_is_teleporter(Maze *maze, V2d pos)
+int maze_is_component(Maze *maze, V2d pos, MazeComponentType type)
 {
-    for (int i = 0; i < maze->teleporter_count; i++) {
-        V2d t_pos = maze->teleporter_location[i];
+    int component_index;
+    component_index = maze_get_specific_component(maze, type);
+
+    if (component_index == -1) {
+        return 0;
+    }
+
+    for (int j = 0; j < maze->components[component_index].count; j++) {
+        V2d t_pos = maze->components[component_index].location[j];
         V2d diff = V2d_sub(t_pos, pos);
         if (diff.x == 0 && diff.y == 0) {
             return 1;
         }
     }
+    
     return 0;
+}
+
+void maze_add_component(Maze *maze, MazeComponentType type, int count)
+{
+    if (maze->components == NULL) {
+        maze->components = malloc((maze->component_count+1) * sizeof(MazeComponent));
+    } else {
+        MazeComponent *new_components = realloc(maze->components, (maze->component_count+1) * sizeof(MazeComponent));
+        maze->components = new_components;
+    }
+    maze->components[maze->component_count].component_type = type;
+    maze->components[maze->component_count].location = (V2d*)malloc(count * sizeof(V2d));
+    maze->components[maze->component_count].count = count;
+    maze->component_count++;
 }
 
 V2d maze_get_random_teleporter_pos(Maze *maze)
 {
-    return (maze->teleporter_location[rand() % maze->teleporter_count]);
+    int i = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
+
+    assert(i != -1);
+
+    return (maze->components[i].location[rand() % maze->components[i].count]);
 }
 
 void maze_place_teleporters(Maze *maze, const int count, double density)
@@ -171,18 +201,21 @@ void maze_place_teleporters(Maze *maze, const int count, double density)
         return;
     }
 
-    if (maze->teleporter_location) {
-        free(maze->teleporter_location);
+    int teleporter_index;
+    teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
+    if (teleporter_index != -1) {
+        return;
+    } else {
+        maze_add_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER, count);
+        teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER);
     }
 
-    maze->teleporter_location = (V2d*)malloc(count * sizeof(V2d));
-    maze->teleporter_count = 0;
-
-    while (maze->teleporter_count < count) {
+    int teleporter_count = 0;
+    while (teleporter_count < count) {
         for (int y = 0; y < maze->height; y++) {
             for (int x = 0; x < maze->width; x++) {
-                if (maze->teleporter_count >= count) {
-                        return;
+                if (teleporter_count >= count) {
+                    return;
                 }
 
                 if (maze->grid[y][x] == PATH) {
@@ -192,12 +225,27 @@ void maze_place_teleporters(Maze *maze, const int count, double density)
 
                     V2d new_pos = {.x = x, .y = y};
                     maze->grid[y][x] = TELEPORT;
-                    maze->teleporter_location[maze->teleporter_count] = new_pos;
-                    maze->teleporter_count++;
+                    maze->components[teleporter_index].location[teleporter_count] = new_pos;
+                    teleporter_count++;
                 }
             }
         }
     }
+}
+
+int maze_get_specific_component(Maze *maze, MazeComponentType type)
+{
+    /* returns the index of a specific component type of a maze.
+     * returns -1 if the maze doesn't contain this type of component.
+     */
+
+    for (int i = 0; i < maze->component_count; i++) {
+        if (maze->components[i].component_type == type) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 static void maze_draw_cell(int s, int y, int x)
@@ -226,8 +274,11 @@ static void maze_draw_cell(int s, int y, int x)
 
 static void maze_draw_teleporter(Maze *maze)
 {
-    for (int i = 0; i < maze->teleporter_count; i++) {
-        V2d t_pos = maze->teleporter_location[i];
-        mvaddch(D_POS(t_pos.y), D_POS(t_pos.x), TELEPORT);
+    int teleporter_index;
+    if ((teleporter_index = maze_get_specific_component(maze, MAZE_COMPONENT_TYPE_TELEPORTER)) != -1) {
+        for (int i = 0; i < maze->components[teleporter_index].count; i++) {
+            V2d t_pos = maze->components[teleporter_index].location[i];
+            mvaddch(D_POS(t_pos.y), D_POS(t_pos.x), TELEPORT);
+        }
     }
 }

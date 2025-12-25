@@ -29,9 +29,12 @@ Game *game_init()
     game->maze->exit_location.x = width - 2;
     game->maze->exit_location.y = height - 2;
 
+    game->maze->component_count = 1;
+    game->maze->components = (MazeComponent*)malloc(game->maze->component_count * sizeof(MazeComponent));
+
     maze_place_teleporters(game->maze, 5, 0.02);
 
-    V2d start_pos = {.x = 1, .y = 1};
+    V2d start_pos = V2D_UNIT_VECTOR();
 
     game->player = player_create(start_pos, 200);
     game->state = GAME_RUN;
@@ -41,7 +44,7 @@ Game *game_init()
 
 void game_handle_input(Game *game, int ch)
 {
-    V2d diff = {0};
+    V2d diff = V2D_ZERO_VECTOR();
 
     if (game->state == GAME_RUN) {
         switch (ch)
@@ -60,7 +63,7 @@ void game_handle_input(Game *game, int ch)
                 game->state = GAME_LOSE;
             } else if (maze_is_exit(game->maze, new_pos)) {
                 game->state = GAME_WON;
-            } else if (maze_is_teleporter(game->maze, new_pos)) {
+            } else if (maze_is_component(game->maze, new_pos, MAZE_COMPONENT_TYPE_TELEPORTER)) {
                 diff = V2d_sub(maze_get_random_teleporter_pos(game->maze), new_pos);
                 new_pos = V2d_add(new_pos, diff);
                 player_move(game->player, diff, 1);
